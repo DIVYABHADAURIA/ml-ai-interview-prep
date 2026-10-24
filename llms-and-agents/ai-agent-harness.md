@@ -45,6 +45,19 @@ As models converge in capability, the harness increasingly decides real-world pe
 
 **Common failure modes** (most production failures come from the harness, not the model): context rot · tool overload · brittle tool wiring · latency (10s+) · irrelevant retrieval · weak verification · missing guardrails.
 
+## Case study: Databricks Genie (text-to-SQL)
+
+Genie answers business questions by writing and running SQL. Most of its quality comes from the harness, not the model. Each harness layer maps to a building block above.
+
+| Layer | How Genie does it | Building block |
+| --- | --- | --- |
+| Ground | A curated knowledge store (table/column descriptions, synonyms, business rules, instructions) plus trusted queries, i.e. SQL verified by a human that Genie reuses for matching questions | Memory and context |
+| Guard | Read-only execution, so generated SQL can't modify data. Unity Catalog applies the asking user's own permissions, so Genie only sees what that user can see | Guardrails |
+| Verify | Inspect reviews and corrects the generated SQL before showing a result. Failed queries are retried with the error fed back to the model | Feedback loops |
+| Loop | Agent mode turns single-shot SQL into a multi-step ReAct loop: plan, run a query, observe results, write the next query, then synthesize an answer | ReAct loop |
+
+**Why it's a good harness example:** text-to-SQL fails mostly on missing business context ("what counts as an active customer?"), not on SQL syntax. Curating that context and verifying outputs fixes more errors than switching models does.
+
 ## Likely interview questions
 
 1. **What's the difference between an agent and a harness?** The agent is the full system; the harness is its execution layer (tools, memory, guardrails, workflow control). You talk to the agent; the harness makes it work.
@@ -52,6 +65,7 @@ As models converge in capability, the harness increasingly decides real-world pe
 3. **Why can the harness matter more than the model?** It drives reliability through memory, orchestration, verification and guardrails. Upgrading only the model gives smaller gains if the scaffolding is unstable. Cite the 36.10% → 52.63% result.
 4. **How would you fix context rot?** Context compaction: summarize or trim older turns, persist key state to files or memory, retrieve only what's relevant.
 5. **How do you govern agents at scale?** Central control of data access, evaluation, audit, cost, and model choice through a shared platform layer instead of per-team harnesses.
+6. **Walk through the harness of a text-to-SQL agent.** Use Genie: *ground* it with a knowledge store and trusted queries, *guard* it with read-only execution and per-user Unity Catalog permissions, *verify* with Inspect and retries on errors, and *loop* with Agent mode for multi-step questions.
 
 ## Closing soundbite and source
 
