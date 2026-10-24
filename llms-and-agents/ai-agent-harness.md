@@ -1,41 +1,62 @@
 # AI Agent Harness
 
-## Core idea
+## The one-line answer
 
-**Agent = Model + Harness.** The model (brain) reasons and picks the next step; the harness (body) runs tools, holds memory and enforces rules.
+**Agent = Model + Harness.** The model is the brain that reasons and picks the next step. The harness is the software around it (tools, memory, workspace, guardrails) that turns those decisions into real actions.
 
-**ReAct loop:** Reason (model picks an action) → Act (harness executes it) → Observe (result fed back) → Repeat until done.
+| Part | Role | Analogy |
+| --- | --- | --- |
+| Model | Reasons and generates output | The brain |
+| Harness | Runs tools, manages memory, enforces rules | The body and workspace |
+| Agent | The whole working system | A worker who thinks and acts |
 
-## 8 building blocks
+**The ReAct loop** (Yao et al., 2022) is how the two interact:
 
-| Component | One-liner |
-| --- | --- |
-| System prompt | Standing role, goal and rules |
-| Tools | Callable functions; trend is toward general code execution |
-| Sandbox | Isolated, resettable place to run code |
-| Filesystem | Durable files across sessions |
-| Memory / context | Compaction: summarize old turns, resume later |
-| Feedback loops | Tests and self-checks after each action |
-| Guardrails | Block unsafe actions; human approval |
-| Observability | Logs and traces for debugging, audit, evals |
+1. **Reason**: the model reads its context and chooses an action.
+2. **Act**: the harness executes it (tool call, sandboxed code, API, storage write).
+3. **Observe**: the harness feeds the result back as new context.
+4. **Repeat** until the task is done.
 
-## Why it matters
+Example: a coding agent proposes a fix, the harness runs tests in a sandbox, and failures go back to the model to retry.
 
-- **Harness can beat model:** GPT-5.5 + OfficeQA Pro harness hit 52.63% vs. 36.10% for GPT-5.4, nearly halving errors.
-- **Evolution:** prompt → context → harness engineering; the first two live inside the third.
-- **Enterprise:** shared harness infrastructure prevents agent sprawl (Agent Bricks + Unity Catalog + MLflow).
-- **Future:** disposable harnesses and natural-language agent harnesses (NLAHs).
-- **Failure modes:** context rot, tool overload, brittle tool wiring, latency, bad retrieval, weak verification, missing guardrails.
+## Building blocks of a production harness
 
-## Quick Q&A
+Each component fixes one limitation of a raw model.
 
-- **Agent vs. harness?** Agent is the whole system; harness is its execution layer.
-- **Harness vs. prompt engineering?** Prompting tunes inputs; harness engineering designs the whole system.
-- **Fix context rot?** Compact old context, persist state to files, retrieve only what's relevant.
-- **Govern at scale?** Central control of access, evals, audit, cost and model choice.
+| Component | What it does | Interview angle |
+| --- | --- | --- |
+| System prompt | Standing instructions: role, goal, rules | Bad prompts are a top cause of inconsistent behavior |
+| Tools | Functions the model can call; the harness executes them | Trend: fewer narrow tools, more general code execution |
+| Sandbox | Isolated space to run code or actions | Safe experimentation, easy reset, parallel agents at scale |
+| Filesystem | Durable files that persist across sessions | Long tasks accumulate progress; humans and agents share work |
+| Memory and context | Decides what stays in context vs. gets summarized | Context compaction; resume work across sessions |
+| Feedback loops | Tests, checks, self-review after each action | Lets agents catch and fix their own errors |
+| Guardrails / human-in-the-loop | Blocks unsafe actions; requires approvals | e.g. approval before deleting files, messaging customers, purchasing |
+| Observability | Logs, traces, dashboards of what and why | Debugging, audit trails for regulated industries, feeds evaluation |
 
-**Soundbite:** strong harnesses make average models useful; weak ones waste the best models.
+## Why the harness matters
 
-Related: Databricks Omnigent (June 2026) is an open-source *meta-harness* that sits above harnesses like Claude Code and Codex to compose, govern and share agents.
+As models converge in capability, the harness increasingly decides real-world performance. A strong harness on a mid-tier model can beat a weak harness on a stronger one.
 
-Source: [What is an AI Agent Harness? (Databricks Blog)](https://www.databricks.com/blog/ai-harness)
+- **Proof point:** GPT-5.5 with Databricks' OfficeQA Pro Agent Harness scored 52.63% vs. 36.10% for GPT-5.4, cutting errors nearly in half.
+- **Evolution of the discipline:** prompt engineering (wording inputs) → context engineering (what the model sees, RAG, memory) → harness engineering (the whole system). The first two live inside the third.
+- **Enterprise problem:** dozens of agents across teams cause *agent sprawl*. The fix is shared harness infrastructure, e.g. Agent Bricks, with governance via Unity Catalog and observability/evaluation via MLflow, across OpenAI, Anthropic, Google and open-source models.
+- **Future:** models will absorb some planning and self-correction, but harnesses persist. Watch for *disposable harnesses* (one-off, per-task) and *natural-language agent harnesses (NLAHs)* configured in plain language.
+
+**Common failure modes** (most production failures come from the harness, not the model): context rot · tool overload · brittle tool wiring · latency (10s+) · irrelevant retrieval · weak verification · missing guardrails.
+
+## Likely interview questions
+
+1. **What's the difference between an agent and a harness?** The agent is the full system; the harness is its execution layer (tools, memory, guardrails, workflow control). You talk to the agent; the harness makes it work.
+2. **Harness vs. prompt engineering?** Prompting tunes the input; harness engineering designs the whole surrounding system. Prompting is one piece of it.
+3. **Why can the harness matter more than the model?** It drives reliability through memory, orchestration, verification and guardrails. Upgrading only the model gives smaller gains if the scaffolding is unstable. Cite the 36.10% → 52.63% result.
+4. **How would you fix context rot?** Context compaction: summarize or trim older turns, persist key state to files or memory, retrieve only what's relevant.
+5. **How do you govern agents at scale?** Central control of data access, evaluation, audit, cost, and model choice through a shared platform layer instead of per-team harnesses.
+
+## Closing soundbite and source
+
+> The model holds the intelligence; the harness turns it into reliable work. Strong harnesses make average models useful, and weak ones waste the best models.
+
+Related: Databricks' open-source meta-harness, Omnigent (June 2026), sits one layer above harnesses like Claude Code and Codex to compose, govern and share agents.
+
+Source: [What is an AI Agent Harness? (Databricks Blog, June 2026)](https://www.databricks.com/blog/ai-harness)
